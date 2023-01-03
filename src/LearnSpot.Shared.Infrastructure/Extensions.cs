@@ -1,9 +1,12 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using LearnSpot.Shared.Abstractions.Modules;
+using LearnSpot.Shared.Abstractions.Time;
 using LearnSpot.Shared.Infrastructure.Api;
+using LearnSpot.Shared.Infrastructure.Auth;
 using LearnSpot.Shared.Infrastructure.Exceptions;
 using LearnSpot.Shared.Infrastructure.Modules;
+using LearnSpot.Shared.Infrastructure.Time;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Microsoft.Extensions.Configuration;
@@ -36,7 +39,9 @@ internal static class Extensions
         }
 
         services.AddModuleInfo(modules);
+        services.AddAuth(modules);
         services.AddErrorHandling();
+        services.AddSingleton<IClock, UtcClock>();
 
         services.AddControllers().ConfigureApplicationPartManager(manager =>
         {
@@ -65,5 +70,19 @@ internal static class Extensions
         app.UseRouting();
 
         return app;
+    }
+
+    public static T GetOptions<T>(this IServiceCollection services, string sectionName) where T : new()
+    {
+        using var serviceProvider = services.BuildServiceProvider();
+        var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+        return configuration.GetOptions<T>(sectionName);
+    }
+    
+    public static T GetOptions<T>(this IConfiguration configuration, string sectionName) where T : new()
+    {
+        var options = new T();
+        configuration.GetSection(sectionName).Bind(options);
+        return options;
     }
 }
